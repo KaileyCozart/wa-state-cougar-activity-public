@@ -1,3 +1,146 @@
-<html>
+<!-- References and Sources Listed at Document End: Denoted by [n]-->
+
+<!-- Run Instructions:
+    1) In command prompt either: 
+    Python 3: python -m http.server 8000
+    Python 2: python -m SimpleHTTPServer 8000
+    2) In browser: http://localhost:8000/
+    3) Navigate to location of index.html
+    4) Ctrl-Shift-R is handy for reloading cached CSS
+-->
+
+<!-- Limitations:
+    1) Only tested in Chrome
+-->
+
+<!DOCTYPE html>
+    <meta content="utf-8" http-equiv="encoding">
+
+    <head>
+        <title>CougarScope: Predictive Insights for Conservation and Coexistence</title>
     
+        <!-- D3 JS Library -->
+        <script type="text/javascript" src="d3.min.js"></script>
+        <script type="text/javascript" src="plot.min.js"></script>
+        <script type="text/javascript" src="topojson.v2.min.js"></script>
+        
+        <!-- CSS -->    
+        <link rel="stylesheet" type="text/css" href="styles.css">
+    </head>
+
+    <body>
+        <!-- HTML Elements -->
+        <div id="navbar" class="initial-nav">
+            <a href="#" class="active">Home</a>
+        </div>
+
+        <div id="navbar-spacing" class="container"></div>
+
+        <div id="state-choropleth" class="container"></div>
+
+        <!-- D3 and Vanilla JS -->
+        <script>
+
+            // Define Dimensions for SVGs
+            margin = ({top: 20, right: 30, bottom: 30, left: 40})
+            var height = 500
+            var width = 954
+            var genericContainerWidth = width + margin.left + margin.right - (width / 2)
+            var genericContainerHeight = height + margin.top + margin.bottom - (height/ 2 ) + 50
+
+            // Colors
+            black = "000000"
+            white = "#FFFFFF"
+            washington_yellow = "#FFD520"
+            dark_washington_yellow = "#E6C200"
+            washington_green = "#008457"
+            choropleth_background_color = black
+
+            ////  State Choropleth  //////////////////////////////////////////////////////////////////
+            
+            // Create SVG for Choropleth
+            var statechorsvg = d3.select("#state-choropleth")
+                .append("svg")
+                .attr("width", genericContainerWidth)
+                .attr("height", genericContainerHeight)
+                .style("background-color", choropleth_background_color)
+
+            ////  Promises  //////////////////////////////////////////////////////////////////
+            Promise.all([
+                d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json"),
+                d3.csv("wdfw_2016_to_2025_county_counts.csv")
+            ]).then(ready)
+
+            ////  Ready  //////////////////////////////////////////////////////////////////
+            function ready([us, data]) {
+
+                ////  State Choropleth  //////////////////////////////////////////////////////////////////
+                
+                // This is the Washington State FIPS Code
+                const stateId = "53"
+
+                // This is the Mapping Stuff
+                const counties = topojson.feature(us, us.objects.counties).features
+                    .filter(d => d.id.startsWith(stateId))
+
+                const state = topojson.feature(us, us.objects.states).features
+                    .find(d => d.id === stateId)
+
+                const projection = d3.geoMercator()
+                    .fitSize([genericContainerWidth, genericContainerHeight], state)
+
+                const path = d3.geoPath(projection)
+
+                // This is Where we Define Colors for Counties
+                const maxValue = d3.max(data, d => +d.value)
+                const valueById = new Map(data.map(d => [d.fips, +d.value]))
+                const color = d3.scaleSequential()
+                    .domain([0, maxValue])
+                    .interpolator(d3.interpolateRgb(white, washington_green))
+
+                // This is Where we Draw the Lines
+                statechorsvg.selectAll("path")
+                    .data(counties)
+                    .join("path")
+                    .attr("d", path)
+                    .attr("fill", d => {
+                        const v = valueById.get(d.id)
+                        return v == null ? white : color(v)
+                    })
+                    .attr("stroke", "black")
+                    .attr("stroke-width", 0.25)
+
+                // This is Where we Write the County Names
+                const countyByFIPS = new Map(data.map(d => [d.fips, d.county]))
+                statechorsvg.selectAll("text")
+                    .data(counties)
+                    .join("text")
+                    .attr("x", d => path.centroid(d)[0])
+                    .attr("y", d => path.centroid(d)[1])
+                    .text(d => {
+                        const fips = d.id
+                        return countyByFIPS.get(fips)
+                    })
+                    .attr("text-anchor", "middle")
+                    .attr("alignment-baseline", "central")
+                    .attr("font-size", "7px")
+                    .attr("font-family", "sans-serif")
+                    .attr("font-weight", "bold")
+                    .attr("letter-spacing", 0.3)
+                    .attr("fill", dark_washington_yellow)
+            }
+
+            ////  Navbar Scroll Function  //////////////////////////////////////////////////////////////////
+            window.onscroll = function() {
+                var navbar = document.getElementById('navbar')
+                if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                    navbar.classList.add('sticky')
+                } else {
+                    navbar.classList.remove('sticky')
+                }
+            }
+
+        </script>
+    </body>
+
 </html>

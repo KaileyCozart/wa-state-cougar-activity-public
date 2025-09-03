@@ -1,0 +1,44 @@
+:root {
+    --lighter-color: #00cc88;
+    --wa-state-green: #008457;
+    --wa-state-black: #000000;
+    --wa-state-yellow: #FFD520;
+    --wa-state-blue: #34C2DE;
+    --wa-state-pink: #FDD6C6;
+    --wa-state-white: #FFFFFF;
+}
+
+body {
+    background-color: var(--wa-state-black);
+    margin: 0;
+}
+
+#navbar {
+    font-family: sans-serif;
+    padding: 15px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    transition: background-color 0.3s;
+}
+
+#navbar a {
+    color: white;
+    padding: 14px 16px;
+    text-decoration: none;
+    font-size: 16px;
+    transition: color 0.3s;
+}
+
+.initial-nav {
+    background-color: var(--lighter-color);
+}
+
+.sticky {
+    background-color: var(--darker-color);
+}
+
+#navbar-spacing {
+    height: 100px;
+}
