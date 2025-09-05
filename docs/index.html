@@ -53,12 +53,13 @@
         <!-- D3 and Vanilla JS -->
         <script>
 
-            // Define Dimensions for SVGs
-            margin = ({top: 20, right: 30, bottom: 30, left: 40})
-            var height = 500
-            var width = 954
-            var genericContainerWidth = width + margin.left + margin.right - (width / 2)
-            var genericContainerHeight = height + margin.top + margin.bottom - (height/ 2 ) + 50
+            // Dynamic SVG
+            function computeWidthHeight() {
+                var container = document.getElementById("state-choropleth")
+                var containerWidth = container.clientWidth
+                var calculatedHeight = containerWidth / 1.5 // Width of Img Divided by Height of Img
+                return {containerWidth, calculatedHeight}
+            }
 
             // Colors
             black = "000000"
@@ -68,25 +69,31 @@
             washington_green = "#008457"
             choropleth_background_color = black
 
-            ////  State Choropleth  //////////////////////////////////////////////////////////////////
-            
-            // Create SVG for Choropleth
-            var statechorsvg = d3.select("#state-choropleth")
-                .append("svg")
-                .attr("width", genericContainerWidth)
-                .attr("height", genericContainerHeight)
-                .style("background-color", choropleth_background_color)
-
             ////  Promises  //////////////////////////////////////////////////////////////////
             Promise.all([
                 d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json"),
                 d3.csv("wdfw_2016_to_2025_county_counts.csv")
-            ]).then(ready)
+            ]).then(function([us, csv]) {
+                // Save Values for Page Updates
+                usData = us
+                csvData = csv
+                ready([usData, csvData])
+            })
 
             ////  Ready  //////////////////////////////////////////////////////////////////
             function ready([us, data]) {
 
                 ////  State Choropleth  //////////////////////////////////////////////////////////////////
+
+                // Create SVG for Choropleth
+                var {containerWidth, calculatedHeight} = computeWidthHeight()
+                var statechorsvg = d3.select("#state-choropleth")
+                    .append("svg")
+                    .attr("viewBox", [0, 0, containerWidth, calculatedHeight])
+                    .attr("preserveAspectRatio", "xMinYMin meet")
+                    .style("width", "100%")
+                    .style("height", calculatedHeight + "px")
+                    .style("background-color", choropleth_background_color)
                 
                 // This is the Washington State FIPS Code
                 const stateId = "53"
@@ -99,7 +106,7 @@
                     .find(d => d.id === stateId)
 
                 const projection = d3.geoMercator()
-                    .fitSize([genericContainerWidth, genericContainerHeight], state)
+                    .fitSize([containerWidth, calculatedHeight], state)
 
                 const path = d3.geoPath(projection)
 
@@ -151,6 +158,19 @@
                     navbar.classList.remove('sticky')
                 }
             }
+
+            ////  Screen Resize Adjustment  //////////////////////////////////////////////////////////////////
+            function resizeSVG() {
+
+                // Clear Map Container for New Map
+                var container = document.getElementById("state-choropleth");
+                container.innerHTML = "";
+
+                // Re-Generate
+                ready([usData, csvData])
+            }
+
+            window.addEventListener("resize", resizeSVG)
 
         </script>
     </body>

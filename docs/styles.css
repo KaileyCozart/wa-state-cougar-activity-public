@@ -51,13 +51,10 @@ body {
     margin-bottom: 30px;
 }
 
-.container {
-    margin-left: 30px;
-}
-
 #state-choropleth {
-    margin-top: 42px;
-    margin-bottom: 30px;
+    width: 75%;
+    margin: 30px;
+    max-width: 1500px;
 }
 
 .body-text {
