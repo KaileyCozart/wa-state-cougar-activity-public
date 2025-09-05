@@ -53,7 +53,7 @@
         <!-- D3 and Vanilla JS -->
         <script>
 
-            // Dynamic SVG
+            // Dynamic SVG Function
             function computeWidthHeight() {
                 var container = document.getElementById("state-choropleth")
                 var containerWidth = container.clientWidth
@@ -142,7 +142,7 @@
                     })
                     .attr("text-anchor", "middle")
                     .attr("alignment-baseline", "central")
-                    .attr("font-size", "7px")
+                    .attr("font-size", "clamp(6px, 0.8vw, 13px)") // For vw, use ((max px - min px) / ref width) * 100, where ref width is the screen size of the max px value. 
                     .attr("font-family", "sans-serif")
                     .attr("font-weight", "bold")
                     .attr("letter-spacing", 0.3)
