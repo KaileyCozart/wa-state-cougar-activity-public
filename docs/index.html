@@ -47,6 +47,7 @@
                 Interactions between cougars, humans, and other animals present challenges in regions with high cougar activity. In the proposed study, data from the Washington Department of Fish and Wildlife (WDFW) and a novel cougar activity dataset will be used to investigate how clustering algorithms can be used to uncover patterns in cougar behavior and whether classifiers can predict high-impact cougar events. This project aims to enhance existing knowledge of cougar aggression behavior with the possibility of offering new insights, ultimately leading to improved public safety and wildlife conservation efforts.
             </p>
 
+            <div id="county-tooltip"></div>
             <div id="state-choropleth" class="container"></div>
             <div id="choropleth-legend" class="legend container"></div>
 
@@ -144,6 +145,27 @@
                     .attr("stroke", "black")
                     .attr("stroke-width", 0.25)
                     .attr("class", "county")
+                    .on("mousemove", function(event, d) { // Show Value on Mouse Hover
+                        const v = valueById.get(d.id)
+                        const countyName = countyByFIPS.get(d.id)
+                        d3.select("#county-tooltip")
+                          .style("display", "block")
+                          .style("left", (event.pageX + 10) + "px")
+                          .style("top", (event.pageY - 10) + "px")
+                          .html(`<strong>${countyName}</strong><br>Value: ${v == null ? "N/A" : v}`)
+                    })
+                    .on("mouseleave", function() { // Remove Value on Mouse Leave
+                        d3.select("#county-tooltip").style("display", "none")
+                    })
+                    .on("click", function(event, d) { // Show Value On Click
+                        const v = valueById.get(d.id)
+                        const countyName = countyByFIPS.get(d.id)
+                        d3.select("#county-tooltip")
+                          .style("display", "block")
+                          .style("left", (event.pageX + 10) + "px")
+                          .style("top", (event.pageY - 10) + "px")
+                          .html(`<strong>${countyName}</strong><br>Value: ${v == null ? "N/A" : v}`)
+                    })
 
                 // This is Where we Write the County Names
                 const countyByFIPS = new Map(data.map(d => [d.fips, d.county]))
