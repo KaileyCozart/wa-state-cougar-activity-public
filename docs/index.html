@@ -34,40 +34,55 @@
     <body>
         <!-- HTML Elements -->
         <div id="navbar" class="initial-nav">
-            <a href="#" class="active">Home</a>
+            <div class="wrapper-div">
+                <a href="#" class="active">Home</a>
+            </div>
         </div>
         <div id="navbar-spacing" class="container"></div>
 
-        <h1 class="title-text">CougarScope: Predictive Insights for Conservation and Coexistence</h1>
+        <div class="wrapper-div">
+            <h1 class="title-text">CougarScope: Predictive Insights for Conservation and Coexistence</h1>
 
-        <p class="body-text">
-            Interactions between cougars, humans, and other animals present challenges in regions with high cougar activity. In the proposed study, data from the Washington Department of Fish and Wildlife (WDFW) and a novel cougar activity dataset will be used to investigate how clustering algorithms can be used to uncover patterns in cougar behavior and whether classifiers can predict high-impact cougar events. This project aims to enhance existing knowledge of cougar aggression behavior with the possibility of offering new insights, ultimately leading to improved public safety and wildlife conservation efforts.
-        </p>
+            <p class="body-text">
+                Interactions between cougars, humans, and other animals present challenges in regions with high cougar activity. In the proposed study, data from the Washington Department of Fish and Wildlife (WDFW) and a novel cougar activity dataset will be used to investigate how clustering algorithms can be used to uncover patterns in cougar behavior and whether classifiers can predict high-impact cougar events. This project aims to enhance existing knowledge of cougar aggression behavior with the possibility of offering new insights, ultimately leading to improved public safety and wildlife conservation efforts.
+            </p>
 
-        <div id="state-choropleth" class="container"></div>
+            <div id="state-choropleth" class="container"></div>
+            <div id="choropleth-legend" class="legend container"></div>
 
-        <p class="body-text">
-            The map above illustrates the frequency of cougar safety confrontations reported to the WDFW from 2016 to 2025, with darker colors indicating more reports. The data here comes from the first dataset to be used in this research. The dataset is publically available and inconsistly labeled, requiring extensive data cleaning. 
-        </p>
+            <p class="body-text">
+                The map above illustrates the frequency of cougar safety confrontations reported to the WDFW from 2016 to 2025, with darker colors indicating more reports. The data here comes from the first dataset to be used in this research. The dataset is publically available and inconsistly labeled, requiring extensive data cleaning. 
+            </p>
+
+            <p class="body-text">
+                The second dataset, which is not publically available, was collected using GPS collars on cougars in Washington State. This dataset provides detailed information on cougar movements and behaviors, which will be analyzed using clustering algorithms to identify patterns and potential predictors of aggressive behavior. By combining insights from both datasets, the study aims to develop a comprehensive understanding of cougar activity and its implications for human safety and wildlife management.
+            </p>
+
+            <p class="body-text">
+                By applying supervised and unsupervised learning algorithms to two cougar behavior datasets, patterns in cougar aggression, as well as the prediction of high-severity cougar incidents, will be explored. Successful completion of this study has the potential to advance the field of knowledge, resulting in benefits to both humans and cougars.
+            </p>
+        </div>
 
         <!-- D3 and Vanilla JS -->
         <script>
 
-            // Dynamic SVG Function
+            // Colors
+            black = "000000"
+            white = "#FFFFFF"
+            light_green = "#97CCBB"
+            dark_green = "#01402A"
+            washington_yellow = "#FFD520"
+            dark_washington_yellow = "#E6C200"
+            washington_green = "#008457"
+            choropleth_background_color = black
+
+            // Dynamic SVG Function - Resize D3 Elements on Screen Resize
             function computeWidthHeight() {
                 var container = document.getElementById("state-choropleth")
                 var containerWidth = container.clientWidth
                 var calculatedHeight = containerWidth / 1.5 // Width of Img Divided by Height of Img
                 return {containerWidth, calculatedHeight}
             }
-
-            // Colors
-            black = "000000"
-            white = "#FFFFFF"
-            washington_yellow = "#FFD520"
-            dark_washington_yellow = "#E6C200"
-            washington_green = "#008457"
-            choropleth_background_color = black
 
             ////  Promises  //////////////////////////////////////////////////////////////////
             Promise.all([
@@ -115,7 +130,7 @@
                 const valueById = new Map(data.map(d => [d.fips, +d.value]))
                 const color = d3.scaleSequential()
                     .domain([0, maxValue])
-                    .interpolator(d3.interpolateRgb(white, washington_green))
+                    .interpolator(d3.interpolateRgb(light_green, dark_green))
 
                 // This is Where we Draw the Lines
                 statechorsvg.selectAll("path")
@@ -128,6 +143,7 @@
                     })
                     .attr("stroke", "black")
                     .attr("stroke-width", 0.25)
+                    .attr("class", "county")
 
                 // This is Where we Write the County Names
                 const countyByFIPS = new Map(data.map(d => [d.fips, d.county]))
@@ -146,7 +162,48 @@
                     .attr("font-family", "sans-serif")
                     .attr("font-weight", "bold")
                     .attr("letter-spacing", 0.3)
-                    .attr("fill", dark_washington_yellow)
+                    .attr("fill", washington_yellow)
+                    
+                    // Choropleth Gradient Legend
+                    d3.select("#choropleth-legend").selectAll("*").remove()
+                    const legendWidth = 200
+                    const legendHeight = 20 // Height of the bar alone.
+                    const legendSvg = d3.select("#choropleth-legend")
+                        .append("svg")
+                        .attr("width", legendWidth)
+                        .attr("height", 40) // Height of svg should be higher for number labels.
+
+                    const defs = legendSvg.append("defs") // Gradient Itself
+                    const gradient = defs.append("linearGradient")
+                        .attr("id", "legend-gradient")
+                    gradient.selectAll("stop")
+                        .data(d3.range(0, 1.01, 0.01))
+                        .enter().append("stop")
+                        .attr("offset", d => `${d * 100}%`)
+                        .attr("stop-color", d => color(d * maxValue))
+
+                    legendSvg.append("rect") // Gradient Bar
+                        .attr("x", 0)
+                        .attr("y", 10)
+                        .attr("width", legendWidth)
+                        .attr("height", legendHeight)
+                        .style("fill", "url(#legend-gradient)")
+
+                    legendSvg.append("text") // Min Value Number Label
+                        .attr("x", 0)
+                        .attr("y", 35)
+                        .attr("text-anchor", "start")
+                        .attr("font-size", "12px")
+                        .attr("fill", "#fff")
+                        .text("0")
+
+                    legendSvg.append("text") // Max Value Number Label
+                        .attr("x", legendWidth)
+                        .attr("y", 35)
+                        .attr("text-anchor", "end")
+                        .attr("font-size", "12px")
+                        .attr("fill", "#fff")
+                        .text(maxValue)
             }
 
             ////  Navbar Scroll Function  //////////////////////////////////////////////////////////////////
