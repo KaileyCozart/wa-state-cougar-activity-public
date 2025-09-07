@@ -47,21 +47,42 @@
                 Interactions between cougars, humans, and other animals present challenges in regions with high cougar activity. In the proposed study, data from the Washington Department of Fish and Wildlife (WDFW) and a novel cougar activity dataset will be used to investigate how clustering algorithms can be used to uncover patterns in cougar behavior and whether classifiers can predict high-impact cougar events. This project aims to enhance existing knowledge of cougar aggression behavior with the possibility of offering new insights, ultimately leading to improved public safety and wildlife conservation efforts.
             </p>
 
+            <p class="body-text indent">
+                The first dataset utilized in this research is the publically available Washington Department of Fish and Wildlife (WDFW) dataset. This dataset contains reports of cougar safety confrontations. Only reports that included confirmed sightings of cougars were included in this study. Additionally, extensive data cleaning was done due to inconsistent labeling and missing data. <b>Figure 1</b> below gives a basic summary of the locations of the reports from 2016 to 2025.
+            </p> 
+
             <div id="county-tooltip"></div>
             <div id="state-choropleth" class="container"></div>
             <div id="choropleth-legend" class="legend container"></div>
 
-            <p class="body-text">
-                The map above illustrates the frequency of cougar safety confrontations reported to the WDFW from 2016 to 2025, with darker colors indicating more reports. The data here comes from the first dataset to be used in this research. The dataset is publically available and inconsistly labeled, requiring extensive data cleaning. 
+            <p class="body-text figure-caption">
+                Figure 1: The map above illustrates the count of cougar safety confrontations reported to the WDFW from 2016 to 2025, with darker colors indicating more reports.
             </p>
 
             <p class="body-text">
-                The second dataset, which is not publically available, was collected using GPS collars on cougars in Washington State. This dataset provides detailed information on cougar movements and behaviors, which will be analyzed using clustering algorithms to identify patterns and potential predictors of aggressive behavior. By combining insights from both datasets, the study aims to develop a comprehensive understanding of cougar activity and its implications for human safety and wildlife management.
+                In <b>Figure 1</b>, Stevens, Spokane, and Chelan county stand out as having the highest number of cougar safety confrontation reports. However, it is important to note that factors such as county population, topography, and land cover can affect these values. 
+            </p>
+
+            <p class="body-text indent">
+                In addition to the cleaned WDFW dataset, a second dataset was collected using private Facebook posts of trail cameras in Washington State. Unlike the safety confrontation reports of the first dataset, this dataset is largely made up of cougar trail camera sightings, providing a different perspective of overall cougar movements.
+                <b>Figure 2</b> below provides a visualization of an incomplete sample of the second cougar activity dataset.
+            </p>
+
+            <div id="necklace-tooltip"></div>
+            <div id="cluster-viz" class="container"></div>
+
+            <p class="body-text figure-caption">
+                Figure 2: The plot above displays cougar sightings over time, separated by Game Management Unit (GMU). The size of each circle represents the number of cougars sighted on that date in that GMU.
             </p>
 
             <p class="body-text">
-                By applying supervised and unsupervised learning algorithms to two cougar behavior datasets, patterns in cougar aggression, as well as the prediction of high-severity cougar incidents, will be explored. Successful completion of this study has the potential to advance the field of knowledge, resulting in benefits to both humans and cougars.
+                Using both of the datasets described above, cougar activity and aggression data will be clustered to reveal patterns in cougar behavior. Additionally, earlier activity and other contextual features will be used in machine learning classifiers to predict future cougar activities.
             </p>
+
+            <footer>
+                <p class="footer">© 2025 Kailey Quesada. All research and content reserved.</p>
+            </footer>
+
         </div>
 
         <!-- D3 and Vanilla JS -->
@@ -88,16 +109,18 @@
             ////  Promises  //////////////////////////////////////////////////////////////////
             Promise.all([
                 d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json"),
-                d3.csv("wdfw_2016_to_2025_county_counts.csv")
-            ]).then(function([us, csv]) {
+                d3.csv("wdfw_2016_to_2025_county_counts.csv"),
+                d3.csv("2024_cougar_activity_data_sample_combined.csv")
+            ]).then(function([us, csv, csv2]) {
                 // Save Values for Page Updates
                 usData = us
                 csvData = csv
-                ready([usData, csvData])
+                csvData2 = csv2
+                ready([usData, csvData, csvData2])
             })
 
             ////  Ready  //////////////////////////////////////////////////////////////////
-            function ready([us, data]) {
+            function ready([us, data, clusterdata]) {
 
                 ////  State Choropleth  //////////////////////////////////////////////////////////////////
 
@@ -152,7 +175,7 @@
                           .style("display", "block")
                           .style("left", (event.pageX + 10) + "px")
                           .style("top", (event.pageY - 10) + "px")
-                          .html(`<strong>${countyName}</strong><br>Value: ${v == null ? "N/A" : v}`)
+                          .html(`<strong>${countyName}</strong><br>${v == null ? "N/A" : v}`) // Represents Number of Reports, Not Number of Cougars Seen (Dataset 1 Limitation)
                     })
                     .on("mouseleave", function() { // Remove Value on Mouse Leave
                         d3.select("#county-tooltip").style("display", "none")
@@ -164,7 +187,7 @@
                           .style("display", "block")
                           .style("left", (event.pageX + 10) + "px")
                           .style("top", (event.pageY - 10) + "px")
-                          .html(`<strong>${countyName}</strong><br>Value: ${v == null ? "N/A" : v}`)
+                          .html(`<strong>${countyName}</strong><br>${v == null ? "N/A" : v}`)
                     })
 
                 // This is Where we Write the County Names
@@ -226,6 +249,148 @@
                         .attr("font-size", "12px")
                         .attr("fill", "#fff")
                         .text(maxValue)
+                
+                ////  Clustering Visualization  //////////////////////////////////////////////////////////////////
+
+                // Define Dynamic Variables for Different Render Sizes
+                calculatedHeight = window.innerWidth < 900 ? (containerWidth * 2) : (containerWidth * 1) // Unlike the map, the height can be whatever we want for this element.
+                let dynamicCircleSizeFactor = window.innerWidth < 600 ? (0.5) : (1)
+                let dynamicPadding = window.innerWidth < 900 ? (50) : (70)
+                let xaxistextpadding = window.innerWidth < 900 ? (calculatedHeight - dynamicPadding + 30) : (calculatedHeight - dynamicPadding + 45)
+
+                // Create SVG for Clustering Viz
+                var clustersvg = d3.select("#cluster-viz")
+                    .append("svg")
+                    .attr("viewBox", [0, 20, containerWidth, calculatedHeight])
+                    .attr("preserveAspectRatio", "xMinYMin meet")
+                    .style("width", "100%")
+                    .style("height", calculatedHeight + "px")
+
+                    // Grab Data
+                    clusterdata.forEach(d => {
+                        d.dateObj = new Date(d.date)
+                        d.gmu = +String(d.gmu).split('/')[0]
+                        d.numcougars = +d.numcougars
+                    })
+
+                    // Sort GMUs
+                    const gmus = [...new Set(clusterdata.map(d => d.gmu))].sort((a, b) => a - b)
+
+                    // X Scale for Date Values (Only Defines Mappings, Doesn't Draw Anything Yet)
+                    const x = d3.scaleTime()
+                        .domain(d3.extent(clusterdata, d => d.dateObj))
+                        .range([dynamicPadding, containerWidth - dynamicPadding])
+
+                    // Y Scale for Categorical GMU Values (Only Defines Mappings, Doesn't Draw Anything Yet)
+                    const y = d3.scalePoint()
+                        .domain(gmus)
+                        .range([calculatedHeight - dynamicPadding, dynamicPadding])
+                        .padding(0.5)
+
+                    // Scale for Circle Radius (Only Defines Mappings, Doesn't Draw Anything Yet)
+                    const r = d3.scaleSqrt()
+                        .domain(d3.extent(clusterdata, d => d.numcougars))
+                        .range([4, 10])
+
+                    // Print Axes Baseline, Tickmarks, and Labels
+                    clustersvg.append("g")
+                        .attr("transform", `translate(0,${calculatedHeight-dynamicPadding})`)
+                        .attr("class", "axis-values")
+                        .call(d3.axisBottom(x))
+                    clustersvg.append("g")
+                        .attr("transform", `translate(${dynamicPadding},0)`)
+                        .attr("class", "axis-values")
+                        .call(d3.axisLeft(y))
+
+                    // Print Circles
+                    clustersvg.selectAll("circle")
+                        .data(clusterdata)
+                        .enter()
+                        .append("circle")
+                        .attr("cx", d => x(d.dateObj))
+                        .attr("cy", d => y(d.gmu))
+                        .attr("r", d => (r(d.numcougars) * dynamicCircleSizeFactor))
+                        .attr("fill", "rgb(146, 199, 182)")
+                        .attr("stroke", dark_green)
+                        .attr("stroke-width", 2)
+                        .attr("class", "circle")
+                        .on("mousemove", function(event, d) { // Show Value on Mouse Hover
+                            d3.select("#necklace-tooltip")
+                                .style("display", "block")
+                                .style("left", (event.pageX + 10) + "px")
+                                .style("top", (event.pageY - 10) + "px")
+                                .html(d ? `<strong>Num Cougars: ${d.numcougars}</strong><br>${d.date}<br>GMU ${d.gmu}` : "N/A")
+                        })
+                        .on("mouseleave", function() { // Remove Value on Mouse Leave
+                            d3.select("#necklace-tooltip").style("display", "none")
+                        })
+                        .on("click", function(event, d) { // Show Value On Click
+                            d3.select("#necklace-tooltip")
+                                .style("display", "block")
+                                .style("left", (event.pageX + 10) + "px")
+                                .style("top", (event.pageY - 10) + "px")
+                                .html(d ? `<strong>Num Cougars: ${d.numcougars}</strong><br>${d.date}<br>GMU ${d.gmu}` : "N/A")
+                        })
+
+                        // Print Horizontal Lines and Labels for Each GMU
+                        clustersvg.selectAll(".gmu-line")
+                            .data(gmus)
+                            .enter()
+                            .append("line")
+                            .attr("class", "gmu-line")
+                            .attr("x1", dynamicPadding)
+                            .attr("x2", containerWidth - dynamicPadding)
+                            .attr("y1", d => y(d))
+                            .attr("y2", d => y(d))
+                            .attr("stroke", (d, i) => i % 2 === 0 ? "gray" : "white") // Alternating stroke colors.
+                            .attr("stroke-dasharray", "1,3")
+
+                        // Count Number of Cougars in Each GMU using Accumulator Object
+                        const gmuCounts = clusterdata.reduce((acc, d) => {
+                            acc[d.gmu] = (acc[d.gmu] || 0) + d.numcougars
+                            return acc
+                        }, {})
+
+                        // Print GMU Count Values
+                        clustersvg.selectAll(".gmu-label")
+                            .data(gmus)
+                            .enter()
+                            .append("text")
+                            .attr("class", "gmu-label")
+                            .attr("x", containerWidth - 50)
+                            .attr("y", d => y(d) - 0)
+                            .attr("fill", "white")
+                            .attr("class", "axis-values")
+                            .text(d => `${gmuCounts[d]}`)
+
+                        // Print X Axis Label
+                        clustersvg.append("text")
+                            .attr("x", containerWidth / 2) 
+                            .attr("y", xaxistextpadding)
+                            .attr("text-anchor", "middle")
+                            .attr("fill", "white")
+                            .attr("class", "axis-label")
+                            .text("Date Reported in 2024")
+
+                        // Print Y Axis Label
+                        clustersvg.append("text")
+                            .attr("x", -calculatedHeight / 2)
+                            .attr("y", 15) // Offset from left edge.
+                            .attr("transform", "rotate(-90)")
+                            .attr("text-anchor", "middle")
+                            .attr("fill", "white")
+                            .attr("class", "axis-label")
+                            .text("Game Management Unit (GMU)")
+
+                        // Print GMU Count Label
+                        clustersvg.append("text")
+                            .attr("x", -calculatedHeight / 2)
+                            .attr("y", containerWidth - 20) // Offset.
+                            .attr("transform", "rotate(-90)")
+                            .attr("text-anchor", "middle")
+                            .attr("fill", "white")
+                            .attr("class", "axis-label")
+                            .text("GMU Count")
             }
 
             ////  Navbar Scroll Function  //////////////////////////////////////////////////////////////////
@@ -241,12 +406,14 @@
             ////  Screen Resize Adjustment  //////////////////////////////////////////////////////////////////
             function resizeSVG() {
 
-                // Clear Map Container for New Map
+                // Clear D3 Containers for New D3 Elements
                 var container = document.getElementById("state-choropleth");
+                container.innerHTML = "";
+                var container = document.getElementById("cluster-viz");
                 container.innerHTML = "";
 
                 // Re-Generate
-                ready([usData, csvData])
+                ready([usData, csvData, csvData2])
             }
 
             window.addEventListener("resize", resizeSVG)
