@@ -1,0 +1,147 @@
+:root {
+    --lighter-color: #00cc88;
+    --wa-state-green: #008457;
+    --wa-state-black: #000000;
+    --wa-state-yellow: #FFD520;
+    --wa-state-blue: #34C2DE;
+    --wa-state-pink: #FDD6C6;
+    --wa-state-white: #FFFFFF;
+    --max-width-value: 1000px;
+}
+
+body {
+    background-color: var(--wa-state-black);
+    margin: 0;
+}
+
+#navbar {
+    font-family: sans-serif;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    transition: background-color 0.3s;
+}
+
+#navbar a {
+    color: black;
+    text-decoration: none;
+    font-size: 16px;
+    transition: color 0.3s;
+    font-weight: bold;
+}
+
+.initial-nav {
+    background-color: var(--lighter-color);
+}
+
+.sticky {
+    background-color: var(--wa-state-green);
+}
+
+#navbar-spacing {
+    height: 40px;
+}
+
+.wrapper-div {
+    display: block;
+    width: 75%;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: var(--max-width-value);
+}
+
+.title-text {
+    color: white;
+    font-family: sans-serif;
+    font-weight: normal;
+    margin-bottom: 30px;
+}
+
+#state-choropleth {
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
+
+.body-text {
+    color: white;
+    font-size: clamp(13px, 2vw, 18px);
+    width: 100%;
+    text-align: justify;
+    font-family:Verdana, Geneva, Tahoma, sans-serif
+}
+
+.county {
+    transition: fill 0.2s;
+}
+
+.county:hover, .county:active {
+    stroke: #888888;
+    stroke-width: 2.5; 
+}
+
+.container {
+    width: 100%;
+    margin-bottom: 30px;
+    margin-top: 30px;
+}
+
+#choropleth-legend {
+    margin-top: 0px;
+}
+
+.legend svg {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#county-tooltip, #necklace-tooltip {
+    display: none; 
+    position: absolute; 
+    background: white; 
+    color: #222222; 
+    border: 1px solid var(--wa-state-white); 
+    padding: 6px 10px; 
+    border-radius: 4px; 
+    pointer-events: none; 
+    font-family: sans-serif;
+    font-size: 14px; 
+    z-index: 10;
+}
+
+#cluster-viz {
+    color: white;
+    background-color: black;
+    margin: 0px;
+}
+
+.figure-caption {
+    font-style: italic;
+    /* font-family: 'Courier New', serif; */
+}
+
+.indent {
+    text-indent: 20px;
+}
+
+.axis-label, .axis-values {
+    font-family: sans-serif;
+    font-size: 14px;
+    font-size: clamp(6px, 1vw, 13px);
+}
+
+.circle:hover, .circle:active {
+    fill: var(--wa-state-green);
+    stroke: var(--wa-state-white);
+    stroke-width: 2;
+    opacity: 0.9;
+}
+
+.footer {
+    color: white;
+    text-align: right;
+    font-size: clamp(6px, 1vw, 13px);
+}

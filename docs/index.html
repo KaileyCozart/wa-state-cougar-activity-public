@@ -56,7 +56,7 @@
             <div id="choropleth-legend" class="legend container"></div>
 
             <p class="body-text figure-caption">
-                Figure 1: The map above illustrates the count of cougar safety confrontations reported to the WDFW from 2016 to 2025, with darker colors indicating more reports.
+                Figure 1: The map above illustrates the count of confirmed cougar safety confrontations reported to the WDFW from 2016 to 2025, with darker colors indicating more reports.
             </p>
 
             <p class="body-text">
@@ -65,14 +65,22 @@
 
             <p class="body-text indent">
                 In addition to the cleaned WDFW dataset, a second dataset was collected using private Facebook posts of trail cameras in Washington State. Unlike the safety confrontation reports of the first dataset, this dataset is largely made up of cougar trail camera sightings, providing a different perspective of overall cougar movements.
-                <b>Figure 2</b> below provides a visualization of an incomplete sample of the second cougar activity dataset.
+                <b>Figure 2</b> below shows a map of the most popular GMUs for 2024 based on a sample, while <b>Figure 3</b> provides a visualization of cougar Facebook post dates based on an incomplete sample of the second cougar activity dataset.
+            </p>
+
+            <div id="gmu-tooltip"></div>
+            <div id="gmu-choropleth" class="container"></div>
+            <div id="gmu-choropleth-legend" class="legend container"></div>
+
+            <p class="body-text figure-caption">
+                Figure 2: The map above shows the number of cougar sightings reported to a private Facebook group during a time period in 2024. Black missing sections on the map represent national parks and indian reservations where GMUs do not exist.
             </p>
 
             <div id="necklace-tooltip"></div>
             <div id="cluster-viz" class="container"></div>
 
             <p class="body-text figure-caption">
-                Figure 2: The plot above displays cougar sightings over time, separated by Game Management Unit (GMU). The size of each circle represents the number of cougars sighted on that date in that GMU.
+                Figure 3: The plot above displays cougar sightings over time, separated by Game Management Unit (GMU). The size of each circle represents the number of cougars sighted on that date in that GMU.
             </p>
 
             <p class="body-text">
@@ -106,21 +114,37 @@
                 return {containerWidth, calculatedHeight}
             }
 
+            function computeWidthHeightGMUChor() {
+                var container = document.getElementById("gmu-choropleth")
+                var containerWidth = container.clientWidth
+                var calculatedHeight = containerWidth / 1.5 // Width of Img Divided by Height of Img
+                return {containerWidth, calculatedHeight}
+            }
+
+            //var valueByIdGMU = d3.map() 
+
             ////  Promises  //////////////////////////////////////////////////////////////////
             Promise.all([
                 d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json"),
+                d3.json("Game_Management_Units_(Polygons)_2025.geojson"),
+                d3.csv("2024_cougar_activity_data_sample_gmu_counts.csv", d => ({
+                    GMU_Num: +d.GMU_Num.trim(),
+                    value: +d.value.trim()
+                })),
                 d3.csv("wdfw_2016_to_2025_county_counts.csv"),
                 d3.csv("2024_cougar_activity_data_sample_combined.csv")
-            ]).then(function([us, csv, csv2]) {
+            ]).then(function([us, gmu, gmu_counts, csv, csv2]) {
                 // Save Values for Page Updates
                 usData = us
+                gmuData = gmu
+                gmuCountData = gmu_counts
                 csvData = csv
                 csvData2 = csv2
-                ready([usData, csvData, csvData2])
+                ready([usData, gmuData, gmuCountData, csvData, csvData2])
             })
 
             ////  Ready  //////////////////////////////////////////////////////////////////
-            function ready([us, data, clusterdata]) {
+            function ready([us, gmuData, gmuCountData, data, clusterdata]) {
 
                 ////  State Choropleth  //////////////////////////////////////////////////////////////////
 
@@ -221,6 +245,7 @@
                     const defs = legendSvg.append("defs") // Gradient Itself
                     const gradient = defs.append("linearGradient")
                         .attr("id", "legend-gradient")
+
                     gradient.selectAll("stop")
                         .data(d3.range(0, 1.01, 0.01))
                         .enter().append("stop")
@@ -249,6 +274,133 @@
                         .attr("font-size", "12px")
                         .attr("fill", "#fff")
                         .text(maxValue)
+
+                
+                //// GMU Choropleth  //////////////////////////////////////////////////////////////////
+
+                // Create SVG for Choropleth
+                var {containerWidth, calculatedHeight} = computeWidthHeightGMUChor()
+                var statechorsvg2 = d3.select("#gmu-choropleth")
+                    .append("svg")
+                    .attr("viewBox", [0, 0, containerWidth, calculatedHeight])
+                    .attr("preserveAspectRatio", "xMinYMin meet")
+                    .style("width", "100%")
+                    .style("height", calculatedHeight + "px")
+                    .style("background-color", choropleth_background_color)
+
+                // This is the Mapping Projection Stuff
+                const gmuPolygons = gmuData.features // This is the GeoJSON Data from WDFW
+                let projectionGMU = d3.geoIdentity() // Lots of Issues, Have to Use GeoIdentity
+                    .reflectY(true)
+                    .fitSize([containerWidth * 1.428, calculatedHeight], gmuData) // Scaling Fix Part II: By Trial and Error
+                let pathGMU = d3.geoPath().projection(projectionGMU)
+                const maxValueGMU = d3.max(gmuCountData, d => +d.value)
+                const valueByIdGMU = new Map(gmuCountData.map(d => [d.GMU_Num, d.value]))
+                
+                // Define Color Scale
+                const colorGMU = d3.scaleSequential()
+                    .domain([0, maxValueGMU])
+                    .interpolator(d3.interpolateRgb(light_green, dark_green))
+
+                // This is Where we Draw the Lines
+                statechorsvg2.selectAll("path")
+                    .data(gmuPolygons)
+                    .join("path")
+                    .attr("d", pathGMU)
+                    .attr("fill", d => {
+                        const key = +d.properties.GMU_Num
+                        const v = valueByIdGMU.get(key)
+                        return v == 0 ? white : colorGMU(v)
+                    })
+                    .attr("stroke", "black")
+                    .attr("stroke-width", 0.25)
+                    .attr("class", "gmu")
+                    .style("transform", 'scaleX(0.7)') // Scaling Fix Part I: https://stackoverflow.com/questions/66924720/resize-projection-in-d3js-in-only-one-axis-with-a-geojson-map
+                    .on("mousemove", function(event, d) { // Show Value on Mouse Hover
+                        const key = +d.properties.GMU_Num
+                        const v = valueByIdGMU.get(key)
+                        const gmuName = key
+                        d3.select("#gmu-tooltip")
+                          .style("display", "block")
+                          .style("left", (event.pageX + 10) + "px")
+                          .style("top", (event.pageY - 10) + "px")
+                          .html(`<strong>GMU ${gmuName}</strong><br>${v == null ? "N/A" : v}`)
+                    })
+                    .on("mouseleave", function() { // Remove Value on Mouse Leave
+                        d3.select("#gmu-tooltip").style("display", "none")
+                    })
+                    .on("click", function(event, d) { // Show Value On Click
+                        const key = +d.properties.GMU_Num
+                        const v = valueByIdGMU.get(key)
+                        const gmuName = key
+                        d3.select("#gmu-tooltip")
+                          .style("display", "block")
+                          .style("left", (event.pageX + 10) + "px")
+                          .style("top", (event.pageY - 10) + "px")
+                          .html(`<strong>GMU ${gmuName}</strong><br>${v == null ? "N/A" : v}`)
+                    })
+
+                // This is Where we Write the GMU Names
+                // statechorsvg2.selectAll("text")
+                //     .data(gmuPolygons)
+                //     .join("text")
+                //     .attr("x", d => pathGMU.centroid(d)[0] * 0.7) // Scaling Fix Part III: Match ScaleX Value
+                //     .attr("y", d => pathGMU.centroid(d)[1])
+                //     .text(d => {
+                //         return d.properties.GMU_Num // We can also use the name as well.
+                //     })
+                //     .attr("text-anchor", "middle")
+                //     .attr("alignment-baseline", "middle")
+                //     .attr("font-size", "clamp(3px, 0.6vw, 10px)") // For vw, use ((max px - min px) / ref width) * 100, where ref width is the screen size of the max px value. 
+                //     .attr("font-family", "sans-serif")
+                //     .attr("font-weight", "bold")
+                //     .attr("letter-spacing", 0.3)
+                //     .attr("fill", d => {
+                //         const key = +d.properties.GMU_Num
+                //         const v = valueByIdGMU.get(key)
+                //         return v == 0 ? dark_green : white
+                //     })
+
+                // Choropleth Gradient Legend
+                d3.select("#gmu-choropleth-legend").selectAll("*").remove()
+                const gmuLegendSvg = d3.select("#gmu-choropleth-legend")
+                    .append("svg")
+                    .attr("width", legendWidth)
+                    .attr("height", 40) // Height of svg should be higher for number labels.
+
+                const gmuDefs = gmuLegendSvg.append("defs") // Gradient Itself
+                const gmuGradient = gmuDefs.append("linearGradient")
+                    .attr("id", "gmu-legend-gradient")
+                
+                gmuGradient.selectAll("stop")
+                    .data(d3.range(0, 1.01, 0.01))
+                    .enter().append("stop")
+                    .attr("offset", d => `${d * 100}%`)
+                    .attr("stop-color", d => colorGMU(d * maxValueGMU))
+
+                gmuLegendSvg.append("rect") // Gradient Bar
+                    .attr("x", 0)
+                    .attr("y", 10)
+                    .attr("width", legendWidth)
+                    .attr("height", legendHeight)
+                    .style("fill", "url(#gmu-legend-gradient)")
+
+                gmuLegendSvg.append("text") // Min Value Number Label
+                    .attr("x", 0)
+                    .attr("y", 35)
+                    .attr("text-anchor", "start")
+                    .attr("font-size", "12px")
+                    .attr("fill", "#fff")
+                    .text("0")
+
+                gmuLegendSvg.append("text") // Max Value Number Label
+                    .attr("x", legendWidth)
+                    .attr("y", 35)
+                    .attr("text-anchor", "end")
+                    .attr("font-size", "12px")
+                    .attr("fill", "#fff")
+                    .text(maxValueGMU)
+                
                 
                 ////  Clustering Visualization  //////////////////////////////////////////////////////////////////
 
@@ -409,11 +561,13 @@
                 // Clear D3 Containers for New D3 Elements
                 var container = document.getElementById("state-choropleth");
                 container.innerHTML = "";
+                var container = document.getElementById("gmu-choropleth");
+                container.innerHTML = "";
                 var container = document.getElementById("cluster-viz");
                 container.innerHTML = "";
 
                 // Re-Generate
-                ready([usData, csvData, csvData2])
+                ready([usData, gmuData, gmuCountData, csvData, csvData2])
             }
 
             window.addEventListener("resize", resizeSVG)

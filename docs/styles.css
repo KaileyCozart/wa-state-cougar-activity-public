@@ -73,11 +73,11 @@ body {
     font-family:Verdana, Geneva, Tahoma, sans-serif
 }
 
-.county {
+.county, .gmu {
     transition: fill 0.2s;
 }
 
-.county:hover, .county:active {
+.county:hover, .county:active, .gmu:hover, .gmu:active {
     stroke: #888888;
     stroke-width: 2.5; 
 }
@@ -98,7 +98,7 @@ body {
     margin-right: auto;
 }
 
-#county-tooltip, #necklace-tooltip {
+#county-tooltip, #gmu-tooltip, #necklace-tooltip {
     display: none; 
     position: absolute; 
     background: white; 
