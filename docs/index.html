@@ -73,7 +73,7 @@
             <div id="gmu-choropleth-legend" class="legend container"></div>
 
             <p class="body-text figure-caption">
-                Figure 2: The map above shows the number of cougar sightings reported to a private Facebook group during a time period in 2024. Black missing sections on the map represent national parks and indian reservations where GMUs do not exist.
+                Figure 2: The map above shows the number of verified cougar sightings reported with sufficient information to a private Facebook group during 2024. Black missing sections on the map represent national parks and indian reservations where GMUs do not exist.
             </p>
 
             <div id="necklace-tooltip"></div>
@@ -127,7 +127,7 @@
             Promise.all([
                 d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json"),
                 d3.json("Game_Management_Units_(Polygons)_2025.geojson"),
-                d3.csv("2024_cougar_activity_data_sample_gmu_counts.csv", d => ({
+                d3.csv("FBCD_2024_GMU_Counts.csv", d => ({
                     GMU_Num: +d.GMU_Num.trim(),
                     value: +d.value.trim()
                 })),
